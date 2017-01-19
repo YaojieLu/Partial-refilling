@@ -23,6 +23,21 @@ gsmaxfm <- function(w, wL,
   return(res)
 }
 
+# when gs reaches its max at px=pxL
+ff <- function(wL,
+               a=1.6, nZ=0.5, p=43200, l=1.8e-5, LAI=1, h=l*a*LAI/nZ*p, VPD=0.02,
+               h2=l*LAI/nZ*p/1000, kxmax=5, c=2.64, d=3.54){
+  
+  f1 <- function(w){
+    ps <- psf(w)
+    pxL <- psf(wL)
+    res <- abs(((-c)*ps*(-(pxL/d))^c+pxL*(-1+c*(-(pxL/d))^c))/(exp((-(pxL/d))^c)*pxL))
+  }
+  
+  res <- optimize(f1, c(wL, 1), tol=.Machine$double.eps)$minimum
+  return(res)
+}
+
 # Af(gs)
 Af <- function(gs, ca=400, Vcmax=50, cp=30, Km=703, Rd=1, LAI=1)LAI*1/2*(Vcmax+(Km+ca)*gs-Rd-((Vcmax)^2+2*Vcmax*(Km-ca+2*cp)*gs+((ca+Km)*gs+Rd)^2-2*Rd*Vcmax)^(1/2))
 
@@ -60,6 +75,25 @@ mfm <- function(w, gs, wL,
 # modified B(w, gs)
 Bfm <- function(w, gs, wL)Af(gs)-mfm(w, gs, wL)
 
+# switch point
+spf <- function(w, wL,
+                ca=400, Vcmax=50, cp=30, Km=703, Rd=1, LAI=1,
+                a=1.6, nZ=0.5, p=43200, l=1.8e-5, h=l*a*LAI/nZ*p, VPD=0.02,
+                h2=l*LAI/nZ*p/1000, kxmax=5, c=2.64, d=3.54, h3=10){
+  
+  ps <- psf(w)
+  pxL <- psf(wL)
+  
+  dAdgsf <- function(gs)(1/2)*LAI*(ca+Km+((-ca^2)*gs-gs*Km^2-Km*Rd-2*cp*Vcmax-Km*Vcmax+ca*(-2*gs*Km-Rd+Vcmax))/sqrt((ca*gs-gs*Km+Rd-Vcmax)^2+4*gs*(ca*gs*Km+Km*Rd+cp*Vcmax)))
+  f1 <- function(px)h3*c*exp(-(-px/d)^c)*(-px/d)^(c-1)/d*pkx*((exp((-(px/d))^c)*h*px*VPD)/(h2*kxmax*px+c*h2*kxmax*ps*(-(px/d))^c-c*h2*kxmax*px*(-(px/d))^c))
+  
+  #gsmax <- gsmaxfm(w, wL)
+  #res <- dAdgsf(gsmax)-f1(pxL)
+  gspxL <- (ps-pxL)*h2*kxmax*exp(-(-pxL/d)^c)/h/VPD
+  res <- dAdgsf(gspxL)-f1(pxL)
+  return(res)
+}
+
 # family ESS
 gswLf <- function(w, wL){
   Bfm1 <- function(gs)Bfm(w, gs, wL)
@@ -73,7 +107,7 @@ BwLf <- function(w, wL)Bfm(w, gswLf(w, wL), wL)
 
 # LHS endpoint
 wLLf <- Vectorize(function(wL){
-  Bfm1 <- function(w)Bfm(w, gswLf(w, wL), wL)
+  Bfm1 <- Vectorize(function(w)Bfm(w, gswLf(w, wL), wL))
   res <- uniroot(Bfm1, c(wL, 1), tol=.Machine$double.eps)$root
   return(res)
 })
