@@ -1,5 +1,6 @@
 
-source("Functions.r")
+#source("Functions.r")
+source("tf.r")
 
 # Initializing
 ca <- 400
