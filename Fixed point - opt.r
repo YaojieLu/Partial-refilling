@@ -10,10 +10,10 @@ pkx <- 0.5
 
 f1 <- Vectorize(function(wLr){
   averBif1 <- Vectorize(function(wLi)averBif(wLi, wLr))
-  optwLi <- optimize(averBif1, c(0.16, 0.2), tol=.Machine$double.eps, maximum=T)
+  optwLi <- optimize(averBif1, c(0.14, 0.206), tol=.Machine$double.eps, maximum=T)
   res <- abs(optwLi$maximum-wLr)
   return(res)
 })
 
-optwL <- optimize(f1, c(0.177, 0.18), tol=.Machine$double.eps)#0.17773536484440103
+optwL <- optimize(f1, c(0.1778, 0.1782), tol=.Machine$double.eps)
 optwL

@@ -24,17 +24,18 @@ gsmaxfm <- function(w, wL,
 }
 
 # when gs reaches its max at px=pxL
-ff <- function(wL,
-               a=1.6, nZ=0.5, p=43200, l=1.8e-5, LAI=1, h=l*a*LAI/nZ*p, VPD=0.02,
-               h2=l*LAI/nZ*p/1000, kxmax=5, c=2.64, d=3.54){
+wgsmaxpxLf <- function(wL,
+                       a=1.6, nZ=0.5, p=43200, l=1.8e-5, LAI=1, h=l*a*LAI/nZ*p, VPD=0.02,
+                       h2=l*LAI/nZ*p/1000, kxmax=5, c=2.64, d=3.54){
   
   f1 <- function(w){
     ps <- psf(w)
     pxL <- psf(wL)
-    res <- abs(((-c)*ps*(-(pxL/d))^c+pxL*(-1+c*(-(pxL/d))^c))/(exp((-(pxL/d))^c)*pxL))
+    res <- ((-c)*ps*(-(pxL/d))^c+pxL*(-1+c*(-(pxL/d))^c))/(exp((-(pxL/d))^c)*pxL)
   }
   
-  res <- optimize(f1, c(wL, 1), tol=.Machine$double.eps)$minimum
+  x <- try(uniroot(f1, c(wL, 1), tol=.Machine$double.eps)$root, silent=TRUE)
+  res <- ifelse(x<1, x, 1)
   return(res)
 }
 
@@ -76,39 +77,56 @@ mfm <- function(w, gs, wL,
 Bfm <- function(w, gs, wL)Af(gs)-mfm(w, gs, wL)
 
 # switch point
-spf <- function(w, wL,
+spf <- function(wL,
                 ca=400, Vcmax=50, cp=30, Km=703, Rd=1, LAI=1,
                 a=1.6, nZ=0.5, p=43200, l=1.8e-5, h=l*a*LAI/nZ*p, VPD=0.02,
                 h2=l*LAI/nZ*p/1000, kxmax=5, c=2.64, d=3.54, h3=10){
   
-  ps <- psf(w)
+  f1 <- function(w){
+    
+    dAdgsf <- function(gs)(1/2)*LAI*(ca+Km+((-ca^2)*gs-gs*Km^2-Km*Rd-2*cp*Vcmax-Km*Vcmax+ca*(-2*gs*Km-Rd+Vcmax))/sqrt((ca*gs-gs*Km+Rd-Vcmax)^2+4*gs*(ca*gs*Km+Km*Rd+cp*Vcmax)))
+    f2 <- function(px)h3*c*exp(-(-px/d)^c)*(-px/d)^(c-1)/d*pkx*((exp((-(px/d))^c)*h*px*VPD)/(h2*kxmax*px+c*h2*kxmax*ps*(-(px/d))^c-c*h2*kxmax*px*(-(px/d))^c))
+    
+    ps <- psf(w)
+    gspxL <- (ps-pxL)*h2*kxmax*exp(-(-pxL/d)^c)/h/VPD
+    res <- dAdgsf(gspxL)-f2(pxL)
+    return(res^2)
+  }
+  
   pxL <- psf(wL)
+  wgsmaxpxL <- wgsmaxpxLf(wL)
+  res <- ifelse(wgsmaxpxL>wL, try(optimize(f1, c(wL, wgsmaxpxL), tol=.Machine$double.eps)$minimum), wL)
+  return(res)
+}
+
+# family ESS 1
+gswLf1 <- function(w, wL){
   
-  dAdgsf <- function(gs)(1/2)*LAI*(ca+Km+((-ca^2)*gs-gs*Km^2-Km*Rd-2*cp*Vcmax-Km*Vcmax+ca*(-2*gs*Km-Rd+Vcmax))/sqrt((ca*gs-gs*Km+Rd-Vcmax)^2+4*gs*(ca*gs*Km+Km*Rd+cp*Vcmax)))
-  f1 <- function(px)h3*c*exp(-(-px/d)^c)*(-px/d)^(c-1)/d*pkx*((exp((-(px/d))^c)*h*px*VPD)/(h2*kxmax*px+c*h2*kxmax*ps*(-(px/d))^c-c*h2*kxmax*px*(-(px/d))^c))
+  Bfm1 <- function(gs)Bfm(w, gs, wL)
+  gsmaxfm1 <- function(w)gsmaxfm(w, wL)
   
-  #gsmax <- gsmaxfm(w, wL)
-  #res <- dAdgsf(gsmax)-f1(pxL)
-  gspxL <- (ps-pxL)*h2*kxmax*exp(-(-pxL/d)^c)/h/VPD
-  res <- dAdgsf(gspxL)-f1(pxL)
+  res <- ifelse(0<gsmaxfm1(w), optimize(Bfm1, c(0, gsmaxfm1(w)), tol=.Machine$double.eps, maximum=T)$maximum, 0)
   return(res)
 }
 
 # family ESS
 gswLf <- function(w, wL){
+  
   Bfm1 <- function(gs)Bfm(w, gs, wL)
   gsmaxfm1 <- function(w)gsmaxfm(w, wL)
-  res <- ifelse(0<gsmaxfm1(w), optimize(Bfm1, c(0, gsmaxfm1(w)), tol=.Machine$double.eps, maximum=T)$maximum, 0)
+  
+  sp <- spf(wL)
+  res <- ifelse(w>sp, ifelse(0<gsmaxfm1(w), optimize(Bfm1, c(0, gsmaxfm1(w)), tol=.Machine$double.eps, maximum=T)$maximum, 0), gsmaxfm1(w))
   return(res)
 }
 
-# famile ESS B(w)
+# family ESS B(w)
 BwLf <- function(w, wL)Bfm(w, gswLf(w, wL), wL)
 
 # LHS endpoint
 wLLf <- Vectorize(function(wL){
-  Bfm1 <- Vectorize(function(w)Bfm(w, gswLf(w, wL), wL))
-  res <- uniroot(Bfm1, c(wL, 1), tol=.Machine$double.eps)$root
+  BwLf1 <- Vectorize(function(w)BwLf(w, wL))
+  res <- uniroot(BwLf1, c(wL, 1), tol=.Machine$double.eps)$root
   return(res)
 })
 
@@ -120,17 +138,23 @@ averBif <- function(wLi, wLr,
   
   wLLr <- wLLf(wLr)
   wLLi <- wLLf(wLi)
-  gswLfr <- Vectorize(function(w)ifelse(w<wLLr, 0, gswLf(w, wLr)))
-  gswLfi <- Vectorize(function(w)ifelse(w<wLLi, 0, gswLf(w, wLi)))
+  spr <- spf(wLr)
+  spi <- spf(wLi)
+  
+  gsmaxfmr <- function(w)gsmaxfm(w, wLr)
+  gsmaxfmi <- function(w)gsmaxfm(w, wLi)
+  
+  gswLfr <- Vectorize(function(w)ifelse(w<wLLr, 0, ifelse(w>spr, gswLf1(w, wLr), gsmaxfmr(w))))
+  gswLfi <- Vectorize(function(w)ifelse(w<wLLi, 0, ifelse(w>spi, gswLf1(w, wLi), gsmaxfmi(w))))
   
   Evf <- function(w)h*VPD*gswLfr(w)
   Lf <- function(w)Evf(w)+w/200
   rLf <- function(w)1/Lf(w)
-  integralrLf <- Vectorize(function(w)integrate(rLf, w, 1, rel.tol=.Machine$double.eps^0.25)$value)
+  integralrLf <- Vectorize(function(w)integrate(rLf, w, 1, rel.tol=.Machine$double.eps^0.4)$value)
   fnoc <- function(w)1/Lf(w)*exp(-gamma*w-k*integralrLf(w))
   
   f1 <- Vectorize(function(w)Bfm(w, gswLfi(w), wLi)*fnoc(w))
-  res <- integrate(f1, wLLi, 1, rel.tol=.Machine$double.eps^0.25)$value
+  res <- integrate(f1, wLLi, 1, rel.tol=.Machine$double.eps^0.4)$value
   message(wLr, " ", wLi, " ", res)
   return(res)
 }
