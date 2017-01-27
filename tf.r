@@ -25,18 +25,18 @@ pxminfm <- function(w, wL){
   return(res)
 }
 
-## xylem water potential
-#pxf <- function(w, gs, wL,
-#                a=1.6, LAI=1, nZ=0.5, p=43200, l=1.8e-5, h=l*a*LAI/nZ*p, VPD=0.02,
-#                h2=l*LAI/nZ*p/1000, kxmax=5, c=2.64, d=3.54){
-#  f1 <- function(px)(ps-px)*h2*kxfm(px, wL)-h*VPD*gs
-#  
-#  ps <- psf(w)
-#  pxmin <- pxminfm(w, wL)
-#  res <- ifelse(pxmin<ps, uniroot(f1, c(pxmin, ps), tol=.Machine$double.eps)$root, ps)
-#  return(res)
-#}
-#
+# xylem water potential
+pxf <- function(w, gs, wL,
+                a=1.6, LAI=1, nZ=0.5, p=43200, l=1.8e-5, h=l*a*LAI/nZ*p, VPD=0.02,
+                h2=l*LAI/nZ*p/1000){
+  f1 <- function(px)(ps-px)*h2*kxfm(px, wL)-h*VPD*gs
+  
+  ps <- psf(w)
+  pxmin <- pxminfm(w, wL)
+  res <- ifelse(pxmin<ps, uniroot(f1, c(pxmin, ps), tol=.Machine$double.eps)$root, ps)
+  return(res)
+}
+
 # modified gsmax(w)
 gsmaxfm <- function(w, wL,
                     a=1.6, nZ=0.5, p=43200, l=1.8e-5, LAI=1, h=l*a*LAI/nZ*p, VPD=0.02,
@@ -57,29 +57,11 @@ Af <- function(gs, ca=400, Vcmax=50, cp=30, Km=703, Rd=1, LAI=1)LAI*1/2*(Vcmax+(
 mfm <- function(w, gs, wL,
                 a=1.6, LAI=1, nZ=0.5, p=43200, l=1.8e-5, h=l*a*LAI/nZ*p, VPD=0.02,
                 h2=l*LAI/nZ*p/1000, kxmax=5, c=2.64, d=3.54, h3=10){
+  # modified PLC(px)
+  PLCfm <- function(px)PLCf(pxL)-(PLCf(pxL)-PLCf(px))*pkx
   
   pxL <- psf(wL)
-  # modified PLC
-  PLCfm <- function(px)PLCf(pxL)-(PLCf(pxL)-PLCf(px))*pkx
-  # modified xylem conductance function
-  kxfm <- function(px)kxmax*(1-PLCfm(px))
-  # minimum xylem water potential function for given w
-  pxminf <- function(w){
-    ps <- psf(w)
-    f1 <- function(px)(ps-px)*h2*kxfm(px)
-    res <- ifelse(pxL<ps, optimize(f1, c(pxL, ps), tol=.Machine$double.eps, maximum=T)$maximum, ps)
-    return(res)
-  }
-  # xylem water potential function
-  pxf <- function(w, gs){
-    ps <- psf(w)
-    pxmin <- pxminf(w)
-    f1 <- function(px)((ps-px)*h2*kxfm(px)-h*VPD*gs)^2
-    res <- ifelse(pxmin<ps, optimize(f1, c(pxmin, ps), tol=.Machine$double.eps)$minimum, ps)
-    return(res)
-  }
-  
-  px <- pxf(w, gs)
+  px <- pxf(w, gs, wL)
   res <- h3*(PLCfm(px)-PLCfm(0))
   return(res)
 }
