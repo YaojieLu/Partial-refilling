@@ -5,7 +5,7 @@ source("Functions.r")
 ca <- 400
 pkx <- 0.5
 
-SA <- seq(0.14, 0.16, by=0.01)
+SA <- c(0.22, 0.21, 0.20, 0.15, 0.1)
 wLL <- wLLf(SA)
 
 # Figure

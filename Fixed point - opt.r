@@ -15,5 +15,5 @@ f1 <- Vectorize(function(wLr){
   return(res)
 })
 
-optwL <- optimize(f1, c(0.1778, 0.1782), tol=.Machine$double.eps)
+optwL <- optimize(f1, c(0.1773, 0.1778), tol=.Machine$double.eps)
 optwL
