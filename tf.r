@@ -84,34 +84,14 @@ tf <- function(w, wL,
                ca=400, Vcmax=50, cp=30, Km=703, Rd=1, LAI=1,
                a=1.6, nZ=0.5, p=43200, l=1.8e-5, h=l*a*LAI/nZ*p, VPD=0.02,
                h2=l*LAI/nZ*p/1000, kxmax=5, c=2.64, d=3.54, h3=10){
+  dAdgsf <- function(gs)(1/2)*LAI*(ca+Km+((-ca^2)*gs-gs*Km^2-Km*Rd-2*cp*Vcmax-Km*Vcmax+ca*(-2*gs*Km-Rd+Vcmax))/sqrt((ca*gs-gs*Km+Rd-Vcmax)^2+4*gs*(ca*gs*Km+Km*Rd+cp*Vcmax)))
+  f1 <- function(px)(-h3*c*exp(-(-px/d)^c)*(-px/d)^(c-1)/d*pkx)*(-((exp((-(px/d))^c)*h*px*VPD)/(h2*kxmax*(exp((-(px/d))^c)*(-1+pkx)*(-1+PLCmax)*px+pkx*(px+c*ps*(-(px/d))^c-c*px*(-(px/d))^c)))))
+  f2 <- function(gs)dAdgsf(gs)-f1(pxf(w, gs, wL))
   
   ps <- psf(w)
   pxL <- psf(wL)
   PLCmax <- PLCf(pxL)
-  # modified PLC
-  PLCfm <- function(px)PLCmax-(PLCmax-PLCf(px))*pkx
-  # modified xylem conductance function
-  kxfm <- function(px)kxmax*(1-PLCfm(px))
-  # minimum xylem water potential function for given w
-  pxminf <- function(w){
-    ps <- psf(w)
-    f1 <- function(px)(ps-px)*h2*kxfm(px)
-    res <- ifelse(pxL<ps, optimize(f1, c(pxL, ps), tol=.Machine$double.eps, maximum=T)$maximum, ps)
-    return(res)
-  }
-  # xylem water potential function
-  pxf <- function(w, gs){
-    ps <- psf(w)
-    pxmin <- pxminf(w)
-    f1 <- function(px)((ps-px)*h2*kxfm(px)-h*VPD*gs)^2
-    res <- ifelse(pxmin<ps, optimize(f1, c(pxmin, ps), tol=.Machine$double.eps)$minimum, ps)
-    return(res)
-  }
-  
-  dAdgsf <- function(gs)(1/2)*LAI*(ca+Km+((-ca^2)*gs-gs*Km^2-Km*Rd-2*cp*Vcmax-Km*Vcmax+ca*(-2*gs*Km-Rd+Vcmax))/sqrt((ca*gs-gs*Km+Rd-Vcmax)^2+4*gs*(ca*gs*Km+Km*Rd+cp*Vcmax)))
-  f1 <- function(px)(-h3*c*exp(-(-px/d)^c)*(-px/d)^(c-1)/d*pkx)*(-((exp((-(px/d))^c)*h*px*VPD)/(h2*kxmax*(exp((-(px/d))^c)*(-1+pkx)*(-1+PLCmax)*px+pkx*(px+c*ps*(-(px/d))^c-c*px*(-(px/d))^c)))))
-  f2 <- function(gs)dAdgsf(gs)-f1(pxf(w, gs))
-  
-  res <- uniroot(f2, c(0, gsmaxfm(w, wL)), tol=.Machine$double.eps)
+  #browser()
+  res <- uniroot(f2, c(0, gsmaxfm(w, wL)-1e-10), tol=.Machine$double.eps)
   return(res$root)
 }
