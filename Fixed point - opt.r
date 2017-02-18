@@ -8,12 +8,5 @@ k <- 0.05
 MAP <- 1825
 pkx <- 0.5
 
-f1 <- Vectorize(function(wLr){
-  averBif1 <- Vectorize(function(wLi)averBif(wLi, wLr))
-  optwLi <- optimize(averBif1, c(0.14, 0.206), tol=.Machine$double.eps, maximum=T)
-  res <- abs(optwLi$maximum-wLr)
-  return(res)
-})
-
-optwL <- optimize(f1, c(0.1773, 0.1778), tol=.Machine$double.eps)
+optwL <- uniroot(optwLif, c(0.177, 0.178), tol=.Machine$double.eps)
 optwL

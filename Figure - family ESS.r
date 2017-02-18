@@ -23,10 +23,18 @@ mtext(expression(italic(g[s])~(mol~m^-2~s^-1)), side=2, line=1.9, cex=1.3)
 # Family ESS
 for(i in 1:length(SA)){
   with(list(wL=SA[i], Col=Cols[i], wLL=wLL[i]), {
-    gswLf1 <- Vectorize(function(w)gswLf(w, wL))
-    curve(gswLf1, wLL, 1, add=T, col=Col)
+    f1 <- Vectorize(function(w)gswLf(w, wL))
+    curve(f1, wLL, 1, add=T, col=Col)
+    #sp <- spf(wL)
+    #abline(h=f1(sp))
+    #abline(v=sp)
   })
 }
 
-legend("bottomright", title=expression(italic(w[L])), as.character(SA), lty=1, col=Cols)
-box()
+#for(i in 1:length(SA)){
+#  with(list(wL=SA[i]), {
+#    f2 <- Vectorize(function(w)gsmaxfm(w, wL))
+#    curve(f2, wL, 1, add=T, lty=2)
+#  })
+#}
+#

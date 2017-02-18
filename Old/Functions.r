@@ -9,70 +9,33 @@ PLCf <- function(px, c=2.64, d=3.54)1-exp(-(-px/d)^c)
 gsmaxfm <- function(w, wL,
                     a=1.6, nZ=0.5, p=43200, l=1.8e-5, LAI=1, h=l*a*LAI/nZ*p, VPD=0.02,
                     h2=l*LAI/nZ*p/1000, kxmax=5, c=2.64, d=3.54){
+  
+  pxL <- psf(wL)
   # modified PLC
   PLCfm <- function(x)PLCf(pxL)-(PLCf(pxL)-PLCf(x))*pkx
   # modified xylem conductance function
   kxfm <- function(x)kxmax*(1-PLCfm(x))
   
+  ps <- psf(w)
   f1 <- function(x)(ps-x)*h2*kxfm(x)/(h*VPD)
   
-  pxL <- psf(wL)
-  ps <- psf(w)
   res <- ifelse(pxL<ps, optimize(f1, c(pxL, ps), tol=.Machine$double.eps, maximum=T)$objective, 0)
   return(res)
 }
 
-# modified pxmin
-pxminfm <- function(w, wL,
-                    LAI=1, nZ=0.5, p=43200, l=1.8e-5, VPD=0.02,
-                    h2=l*LAI/nZ*p/1000, kxmax=5){
-  # modified PLC
-  PLCfm <- function(x)PLCf(pxL)-(PLCf(pxL)-PLCf(x))*pkx
-  # modified xylem conductance function
-  kxfm <- function(x)kxmax*(1-PLCfm(x))
-  
-  f1 <- function(x)(ps-x)*h2*kxfm(x)
-  
-  pxL <- psf(wL)
-  ps <- psf(w)
-  wgsmaxpxL <- wgsmaxpxLf(wL)
-  res <- ifelse(pxL<ps, ifelse(w>wgsmaxpxL, optimize(f1, c(pxL, ps), tol=.Machine$double.eps, maximum=T)$maximum, pxL), ps)
-  return(res)
-  
-}
-
-# xylem water potential function
-pxf <- function(w, gs, wL,
-                a=1.6, LAI=1, nZ=0.5, p=43200, l=1.8e-5, h=l*a*LAI/nZ*p, VPD=0.02,
-                h2=l*LAI/nZ*p/1000, kxmax=5){
-  # modified PLC
-  PLCfm <- function(x)PLCf(pxL)-(PLCf(pxL)-PLCf(x))*pkx
-  # modified xylem conductance function
-  kxfm <- function(x)kxmax*(1-PLCfm(x))
-  
-  f1 <- function(x)(ps-x)*h2*kxfm(x)-h*VPD*gs
-  
-  pxL <- psf(wL)
-  ps <- psf(w)
-  pxmin <- pxminfm(w, wL)
-  res <- ifelse(pxmin<ps, uniroot(f1, c(pxmin, ps), tol=.Machine$double.eps)$root, ps)
-  return(res)
-}
-
-# where gs reaches its max at px=pxL
+# when gs reaches its max at px=pxL
 wgsmaxpxLf <- function(wL,
                        a=1.6, nZ=0.5, p=43200, l=1.8e-5, LAI=1, h=l*a*LAI/nZ*p, VPD=0.02,
                        h2=l*LAI/nZ*p/1000, kxmax=5, c=2.64, d=3.54){
+  
   f1 <- function(w){
     ps <- psf(w)
-    px <- pxL
-    res <- -((h2*kxmax*(exp((-(px/d))^c)*(-1+pkx)*(-1+PLCmax)*px+pkx*(px+c*ps*(-(px/d))^c-c*px*(-(px/d))^c)))/(exp((-(px/d))^c)*px))
+    pxL <- psf(wL)
+    res <- ((-c)*ps*(-(pxL/d))^c+pxL*(-1+c*(-(pxL/d))^c))/(exp((-(pxL/d))^c)*pxL)
   }
   
-  pxL <- psf(wL)
-  PLCmax <- PLCf(pxL)
   x <- try(uniroot(f1, c(wL, 1), tol=.Machine$double.eps)$root, silent=TRUE)
-  res <- ifelse(is.numeric(x), x, 1)
+  res <- ifelse(x<1, x, 1)
   return(res)
 }
 
@@ -80,12 +43,32 @@ wgsmaxpxLf <- function(wL,
 Af <- function(gs, ca=400, Vcmax=50, cp=30, Km=703, Rd=1, LAI=1)LAI*1/2*(Vcmax+(Km+ca)*gs-Rd-((Vcmax)^2+2*Vcmax*(Km-ca+2*cp)*gs+((ca+Km)*gs+Rd)^2-2*Rd*Vcmax)^(1/2))
 
 # modified mf(w, gs)
-mfm <- function(w, gs, wL, h3=10){
-  # modified PLC
-  PLCfm <- function(x)PLCf(pxL)-(PLCf(pxL)-PLCf(x))*pkx
+mfm <- function(w, gs, wL,
+                a=1.6, LAI=1, nZ=0.5, p=43200, l=1.8e-5, h=l*a*LAI/nZ*p, VPD=0.02,
+                h2=l*LAI/nZ*p/1000, kxmax=5, c=2.64, d=3.54, h3=10){
   
   pxL <- psf(wL)
-  px <- pxf(w, gs, wL)
+  # modified PLC
+  PLCfm <- function(x)PLCf(pxL)-(PLCf(pxL)-PLCf(x))*pkx
+  # modified xylem conductance function
+  kxfm <- function(x)kxmax*(1-PLCfm(x))
+  # minimum xylem water potential function for given w
+  pxminf <- function(w){
+    ps <- psf(w)
+    f1 <- function(x)(ps-x)*h2*kxfm(x)
+    res <- ifelse(pxL<ps, optimize(f1, c(pxL, ps), tol=.Machine$double.eps, maximum=T)$maximum, ps)
+    return(res)
+  }
+  # xylem water potential function
+  pxf <- function(w, gs){
+    ps <- psf(w)
+    pxmin <- pxminf(w)
+    f1 <- function(x)((ps-x)*h2*kxfm(x)-h*VPD*gs)^2
+    res <- ifelse(pxmin<ps, optimize(f1, c(pxmin, ps), tol=.Machine$double.eps)$minimum, ps)
+    return(res)
+  }
+  
+  px <- pxf(w, gs)
   res <- h3*(PLCfm(px)-PLCfm(0))
   return(res)
 }
@@ -98,27 +81,27 @@ spf <- function(wL,
                 ca=400, Vcmax=50, cp=30, Km=703, Rd=1, LAI=1,
                 a=1.6, nZ=0.5, p=43200, l=1.8e-5, h=l*a*LAI/nZ*p, VPD=0.02,
                 h2=l*LAI/nZ*p/1000, kxmax=5, c=2.64, d=3.54, h3=10){
+  
   f1 <- function(w){
+    
     dAdgsf <- function(gs)(1/2)*LAI*(ca+Km+((-ca^2)*gs-gs*Km^2-Km*Rd-2*cp*Vcmax-Km*Vcmax+ca*(-2*gs*Km-Rd+Vcmax))/sqrt((ca*gs-gs*Km+Rd-Vcmax)^2+4*gs*(ca*gs*Km+Km*Rd+cp*Vcmax)))
-    f2 <- function(px)h3*c*exp(-(-px/d)^c)*(-px/d)^(c-1)/d*pkx*((exp((-(px/d))^c)*h*px*VPD)/(h2*kxmax*(exp((-(px/d))^c)*(-1+pkx)*(-1+PLCmax)*px+pkx*(px+c*ps*(-(px/d))^c-c*px*(-(px/d))^c))))
+    f2 <- function(px)h3*c*exp(-(-px/d)^c)*(-px/d)^(c-1)/d*pkx*((exp((-(px/d))^c)*h*px*VPD)/(h2*kxmax*px+c*h2*kxmax*ps*(-(px/d))^c-c*h2*kxmax*px*(-(px/d))^c))
     
     ps <- psf(w)
-    gsmax <- gsmaxfm(w, wL)
-    pxmin <- pxminfm(w, wL)
-    res <- dAdgsf(gsmax)-f2(pxmin)
-    return(res)
+    gspxL <- (ps-pxL)*h2*kxmax*exp(-(-pxL/d)^c)/h/VPD
+    res <- dAdgsf(gspxL)-f2(pxL)
+    return(res^2)
   }
   
   pxL <- psf(wL)
-  PLCmax <- PLCf(pxL)
   wgsmaxpxL <- wgsmaxpxLf(wL)
-  x <- try(uniroot(f1, c(wL, wgsmaxpxL), tol=.Machine$double.eps)$root, silent=TRUE)
-  res <- ifelse(wgsmaxpxL>wL, ifelse(is.numeric(x), x, ifelse(f1(wL)>f1(wgsmaxpxL), 1, wL)), wL)
+  res <- ifelse(wgsmaxpxL>wL, try(optimize(f1, c(wL, wgsmaxpxL), tol=.Machine$double.eps)$minimum), wL)
   return(res)
 }
 
 # family ESS 1
 gswLf1 <- function(w, wL){
+  
   Bfm1 <- function(gs)Bfm(w, gs, wL)
   gsmaxfm1 <- function(w)gsmaxfm(w, wL)
   
@@ -128,6 +111,7 @@ gswLf1 <- function(w, wL){
 
 # family ESS
 gswLf <- function(w, wL){
+  
   Bfm1 <- function(gs)Bfm(w, gs, wL)
   gsmaxfm1 <- function(w)gsmaxfm(w, wL)
   
@@ -151,6 +135,7 @@ averBif <- function(wLi, wLr,
                     a=1.6, nZ=0.5, p=43200, l=1.8e-5, LAI=1, h=l*a*LAI/nZ*p, VPD=0.02,
                     pe=-1.58*10^-3, b=4.38, h2=h/1000, kxmax=5, c=2.64, d=3.54,
                     gamma=1/((MAP/365/k)/1000)*nZ){
+  
   wLLr <- wLLf(wLr)
   wLLi <- wLLf(wLi)
   spr <- spf(wLr)
@@ -165,18 +150,18 @@ averBif <- function(wLi, wLr,
   Evf <- function(w)h*VPD*gswLfr(w)
   Lf <- function(w)Evf(w)+w/200
   rLf <- function(w)1/Lf(w)
-  integralrLf <- Vectorize(function(w)integrate(rLf, w, 1, rel.tol=.Machine$double.eps^0.25)$value)
+  integralrLf <- Vectorize(function(w)integrate(rLf, w, 1, rel.tol=.Machine$double.eps^0.4)$value)
   fnoc <- function(w)1/Lf(w)*exp(-gamma*w-k*integralrLf(w))
   
   f1 <- Vectorize(function(w)Bfm(w, gswLfi(w), wLi)*fnoc(w))
-  res <- integrate(f1, wLLi, 1, rel.tol=.Machine$double.eps^0.25)$value
+  res <- integrate(f1, wLLi, 1, rel.tol=.Machine$double.eps^0.4)$value
   message(wLr, " ", wLi, " ", res)
   return(res)
 }
 
-optwLif <- Vectorize(function(wLr){
+optwLf <- Vectorize(function(wLr){
   averBif1 <- Vectorize(function(wLi)averBif(wLi, wLr))
-  optwLi <- optimize(averBif1, c(0.16, 0.19), tol=.Machine$double.eps, maximum=T)
-  res <- optwLi$maximum-wLr
+  res <- optimize(averBif1, c(0.1, 0.3), tol=.Machine$double.eps, maximum=T)$maximum
+  message(wLr)
   return(res)
 })

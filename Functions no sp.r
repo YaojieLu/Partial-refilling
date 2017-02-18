@@ -22,6 +22,23 @@ gsmaxfm <- function(w, wL,
   return(res)
 }
 
+# where gs reaches its max at px=pxL
+wgsmaxpxLf <- function(wL,
+                       a=1.6, nZ=0.5, p=43200, l=1.8e-5, LAI=1, h=l*a*LAI/nZ*p, VPD=0.02,
+                       h2=l*LAI/nZ*p/1000, kxmax=5, c=2.64, d=3.54){
+  f1 <- function(w){
+    ps <- psf(w)
+    px <- pxL
+    res <- -((h2*kxmax*(exp((-(px/d))^c)*(-1+pkx)*(-1+PLCmax)*px+pkx*(px+c*ps*(-(px/d))^c-c*px*(-(px/d))^c)))/(exp((-(px/d))^c)*px))
+  }
+  
+  pxL <- psf(wL)
+  PLCmax <- PLCf(pxL)
+  x <- try(uniroot(f1, c(wL, 1), tol=.Machine$double.eps)$root, silent=TRUE)
+  res <- ifelse(is.numeric(x), x, 1)
+  return(res)
+}
+
 # modified pxmin
 pxminfm <- function(w, wL,
                     LAI=1, nZ=0.5, p=43200, l=1.8e-5, VPD=0.02,
@@ -59,23 +76,6 @@ pxf <- function(w, gs, wL,
   return(res)
 }
 
-# where gs reaches its max at px=pxL
-wgsmaxpxLf <- function(wL,
-                       a=1.6, nZ=0.5, p=43200, l=1.8e-5, LAI=1, h=l*a*LAI/nZ*p, VPD=0.02,
-                       h2=l*LAI/nZ*p/1000, kxmax=5, c=2.64, d=3.54){
-  f1 <- function(w){
-    ps <- psf(w)
-    px <- pxL
-    res <- -((h2*kxmax*(exp((-(px/d))^c)*(-1+pkx)*(-1+PLCmax)*px+pkx*(px+c*ps*(-(px/d))^c-c*px*(-(px/d))^c)))/(exp((-(px/d))^c)*px))
-  }
-  
-  pxL <- psf(wL)
-  PLCmax <- PLCf(pxL)
-  x <- try(uniroot(f1, c(wL, 1), tol=.Machine$double.eps)$root, silent=TRUE)
-  res <- ifelse(is.numeric(x), x, 1)
-  return(res)
-}
-
 # Af(gs)
 Af <- function(gs, ca=400, Vcmax=50, cp=30, Km=703, Rd=1, LAI=1)LAI*1/2*(Vcmax+(Km+ca)*gs-Rd-((Vcmax)^2+2*Vcmax*(Km-ca+2*cp)*gs+((ca+Km)*gs+Rd)^2-2*Rd*Vcmax)^(1/2))
 
@@ -93,46 +93,12 @@ mfm <- function(w, gs, wL, h3=10){
 # modified B(w, gs)
 Bfm <- function(w, gs, wL)Af(gs)-mfm(w, gs, wL)
 
-# switch point
-spf <- function(wL,
-                ca=400, Vcmax=50, cp=30, Km=703, Rd=1, LAI=1,
-                a=1.6, nZ=0.5, p=43200, l=1.8e-5, h=l*a*LAI/nZ*p, VPD=0.02,
-                h2=l*LAI/nZ*p/1000, kxmax=5, c=2.64, d=3.54, h3=10){
-  f1 <- function(w){
-    dAdgsf <- function(gs)(1/2)*LAI*(ca+Km+((-ca^2)*gs-gs*Km^2-Km*Rd-2*cp*Vcmax-Km*Vcmax+ca*(-2*gs*Km-Rd+Vcmax))/sqrt((ca*gs-gs*Km+Rd-Vcmax)^2+4*gs*(ca*gs*Km+Km*Rd+cp*Vcmax)))
-    f2 <- function(px)h3*c*exp(-(-px/d)^c)*(-px/d)^(c-1)/d*pkx*((exp((-(px/d))^c)*h*px*VPD)/(h2*kxmax*(exp((-(px/d))^c)*(-1+pkx)*(-1+PLCmax)*px+pkx*(px+c*ps*(-(px/d))^c-c*px*(-(px/d))^c))))
-    
-    ps <- psf(w)
-    gsmax <- gsmaxfm(w, wL)
-    pxmin <- pxminfm(w, wL)
-    res <- dAdgsf(gsmax)-f2(pxmin)
-    return(res)
-  }
-  
-  pxL <- psf(wL)
-  PLCmax <- PLCf(pxL)
-  wgsmaxpxL <- wgsmaxpxLf(wL)
-  x <- try(uniroot(f1, c(wL, wgsmaxpxL), tol=.Machine$double.eps)$root, silent=TRUE)
-  res <- ifelse(wgsmaxpxL>wL, ifelse(is.numeric(x), x, ifelse(f1(wL)>f1(wgsmaxpxL), 1, wL)), wL)
-  return(res)
-}
-
-# family ESS 1
-gswLf1 <- function(w, wL){
-  Bfm1 <- function(gs)Bfm(w, gs, wL)
-  gsmaxfm1 <- function(w)gsmaxfm(w, wL)
-  
-  res <- ifelse(0<gsmaxfm1(w), optimize(Bfm1, c(0, gsmaxfm1(w)), tol=.Machine$double.eps, maximum=T)$maximum, 0)
-  return(res)
-}
-
 # family ESS
 gswLf <- function(w, wL){
   Bfm1 <- function(gs)Bfm(w, gs, wL)
   gsmaxfm1 <- function(w)gsmaxfm(w, wL)
   
-  sp <- spf(wL)
-  res <- ifelse(w>sp, ifelse(0<gsmaxfm1(w), optimize(Bfm1, c(0, gsmaxfm1(w)), tol=.Machine$double.eps, maximum=T)$maximum, 0), gsmaxfm1(w))
+  res <- ifelse(0<gsmaxfm1(w), optimize(Bfm1, c(0, gsmaxfm1(w)), tol=.Machine$double.eps, maximum=T)$maximum, 0)
   return(res)
 }
 
@@ -153,14 +119,9 @@ averBif <- function(wLi, wLr,
                     gamma=1/((MAP/365/k)/1000)*nZ){
   wLLr <- wLLf(wLr)
   wLLi <- wLLf(wLi)
-  spr <- spf(wLr)
-  spi <- spf(wLi)
   
-  gsmaxfmr <- function(w)gsmaxfm(w, wLr)
-  gsmaxfmi <- function(w)gsmaxfm(w, wLi)
-  
-  gswLfr <- Vectorize(function(w)ifelse(w<wLLr, 0, ifelse(w>spr, gswLf1(w, wLr), gsmaxfmr(w))))
-  gswLfi <- Vectorize(function(w)ifelse(w<wLLi, 0, ifelse(w>spi, gswLf1(w, wLi), gsmaxfmi(w))))
+  gswLfr <- Vectorize(function(w)gswLf(w, wLr))
+  gswLfi <- Vectorize(function(w)gswLf(w, wLi))
   
   Evf <- function(w)h*VPD*gswLfr(w)
   Lf <- function(w)Evf(w)+w/200

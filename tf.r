@@ -47,7 +47,7 @@ gsmaxfm <- function(w, wL,
   ps <- psf(w)
   pxL <- psf(wL)
   res <- ifelse(pxL<ps, optimize(f1, c(pxL, ps), tol=.Machine$double.eps, maximum=T)$objective, 0)
-  return(res)
+  return(res-1e-10)
 }
 
 # Af(gs)
@@ -69,21 +69,32 @@ mfm <- function(w, gs, wL,
 # modified B(w, gs)
 Bfm <- function(w, gs, wL)Af(gs)-mfm(w, gs, wL)
 
-# family ESS
-gswLf <- function(w, wL){
+# switch point
+spf <- function(wL,
+                ca=400, Vcmax=50, cp=30, Km=703, Rd=1, LAI=1,
+                a=1.6, nZ=0.5, p=43200, l=1.8e-5, h=l*a*LAI/nZ*p, VPD=0.02,
+                h2=l*LAI/nZ*p/1000, kxmax=5, c=2.64, d=3.54, h3=10){
+  dAdgsf <- function(gs)(1/2)*LAI*(ca+Km+((-ca^2)*gs-gs*Km^2-Km*Rd-2*cp*Vcmax-Km*Vcmax+ca*(-2*gs*Km-Rd+Vcmax))/sqrt((ca*gs-gs*Km+Rd-Vcmax)^2+4*gs*(ca*gs*Km+Km*Rd+cp*Vcmax)))
+  f1 <- function(px, ps)(-h3*c*exp(-(-px/d)^c)*(-px/d)^(c-1)/d*pkx)*(-((exp((-(px/d))^c)*h*px*VPD)/(h2*kxmax*(exp((-(px/d))^c)*(-1+pkx)*(-1+PLCmax)*px+pkx*(px+c*ps*(-(px/d))^c-c*px*(-(px/d))^c)))))
+  f2 <- function(w){
+    ps <- psf(w)
+    gs <- gsmaxfm(w, wL)
+    res <- dAdgsf(gs)-f1(pxf(w, gs, wL), ps)
+    return(res)
+  }
   
-  Bfm1 <- function(gs)Bfm(w, gs, wL)
-  gsmaxfm1 <- function(w)gsmaxfm(w, wL)
-  
-  res <- ifelse(0<gsmaxfm1(w), optimize(Bfm1, c(0, gsmaxfm1(w)), tol=.Machine$double.eps, maximum=T)$maximum, 0)
+  pxL <- psf(wL)
+  PLCmax <- PLCf(pxL)
+  x <- try(uniroot(f2, c(wL, 1), tol=.Machine$double.eps)$root, silent=TRUE)
+  res <- ifelse(is.numeric(x), x, ifelse(f2(1)>0, 1, wL))
   return(res)
 }
 
-# test family ESS
-tf <- function(w, wL,
-               ca=400, Vcmax=50, cp=30, Km=703, Rd=1, LAI=1,
-               a=1.6, nZ=0.5, p=43200, l=1.8e-5, h=l*a*LAI/nZ*p, VPD=0.02,
-               h2=l*LAI/nZ*p/1000, kxmax=5, c=2.64, d=3.54, h3=10){
+# dB/dgs=0
+asf <- function(w, wL,
+                ca=400, Vcmax=50, cp=30, Km=703, Rd=1, LAI=1,
+                a=1.6, nZ=0.5, p=43200, l=1.8e-5, h=l*a*LAI/nZ*p, VPD=0.02,
+                h2=l*LAI/nZ*p/1000, kxmax=5, c=2.64, d=3.54, h3=10){
   dAdgsf <- function(gs)(1/2)*LAI*(ca+Km+((-ca^2)*gs-gs*Km^2-Km*Rd-2*cp*Vcmax-Km*Vcmax+ca*(-2*gs*Km-Rd+Vcmax))/sqrt((ca*gs-gs*Km+Rd-Vcmax)^2+4*gs*(ca*gs*Km+Km*Rd+cp*Vcmax)))
   f1 <- function(px)(-h3*c*exp(-(-px/d)^c)*(-px/d)^(c-1)/d*pkx)*(-((exp((-(px/d))^c)*h*px*VPD)/(h2*kxmax*(exp((-(px/d))^c)*(-1+pkx)*(-1+PLCmax)*px+pkx*(px+c*ps*(-(px/d))^c-c*px*(-(px/d))^c)))))
   f2 <- function(gs)dAdgsf(gs)-f1(pxf(w, gs, wL))
@@ -91,7 +102,13 @@ tf <- function(w, wL,
   ps <- psf(w)
   pxL <- psf(wL)
   PLCmax <- PLCf(pxL)
-  #browser()
-  res <- uniroot(f2, c(0, gsmaxfm(w, wL)-1e-10), tol=.Machine$double.eps)
+  res <- uniroot(f2, c(0, gsmaxfm(w, wL)), tol=.Machine$double.eps)
   return(res$root)
+}
+
+# family ESS
+gswLf <- function(w, wL){
+  sp <- spf(wL)
+  res <- ifelse(w>sp, asf(w, wL), gsmaxfm(w, wL))
+  return(res)
 }
