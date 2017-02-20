@@ -112,7 +112,7 @@ spf <- function(wL,
   pxL <- psf(wL)
   PLCmax <- PLCf(pxL)
   wgsmaxpxL <- wgsmaxpxLf(wL)
-  x <- try(uniroot(f1, c(wL, wgsmaxpxL), tol=.Machine$double.eps)$root, silent=TRUE)
+  x <- try(uniroot(f1, c(wL, wgsmaxpxL*(1-1e-10)), tol=.Machine$double.eps)$root, silent=TRUE)
   res <- ifelse(wgsmaxpxL>wL, ifelse(is.numeric(x), x, ifelse(f1(wL)>f1(wgsmaxpxL), 1, wL)), wL)
   return(res)
 }
@@ -149,7 +149,7 @@ wLLf <- Vectorize(function(wL){
 # averB for invader
 averBif <- function(wLi, wLr,
                     a=1.6, nZ=0.5, p=43200, l=1.8e-5, LAI=1, h=l*a*LAI/nZ*p, VPD=0.02,
-                    pe=-1.58*10^-3, b=4.38, h2=h/1000, kxmax=5, c=2.64, d=3.54,
+                    pe=-1.58*10^-3, b=4.38, h2=l*LAI/nZ*p/1000, kxmax=5, c=2.64, d=3.54,
                     gamma=1/((MAP/365/k)/1000)*nZ){
   wLLr <- wLLf(wLr)
   wLLi <- wLLf(wLi)
@@ -169,6 +169,7 @@ averBif <- function(wLi, wLr,
   fnoc <- function(w)1/Lf(w)*exp(-gamma*w-k*integralrLf(w))
   
   f1 <- Vectorize(function(w)Bfm(w, gswLfi(w), wLi)*fnoc(w))
+  browser()
   res <- integrate(f1, wLLi, 1, rel.tol=.Machine$double.eps^0.25)$value
   message(wLr, " ", wLi, " ", res)
   return(res)
