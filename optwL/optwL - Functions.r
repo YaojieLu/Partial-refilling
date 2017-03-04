@@ -3,12 +3,12 @@
 psf <- function(w, pe=-1.58*10^-3, b=4.38)pe*w^(-b)
 
 # the original PLC(px)
-PLCf <- function(px, c=2.64, d=3.54)1-exp(-(-px/d)^c)
+PLCf <- function(px)1-exp(-(-px/d)^c)
 
 # modified gsmax
 gsmaxfm <- function(w, wL,
                     a=1.6, nZ=0.5, p=43200, l=1.8e-5, LAI=1, h=l*a*LAI/nZ*p, VPD=0.02,
-                    h2=l*LAI/nZ*p/1000, kxmax=5, c=2.64, d=3.54){
+                    h2=l*LAI/nZ*p/1000, kxmax=5){
   # modified PLC
   PLCfm <- function(x)PLCf(pxL)-(PLCf(pxL)-PLCf(x))*pkx
   # modified xylem conductance function
@@ -62,7 +62,7 @@ pxf <- function(w, gs, wL,
 # where gs reaches its max at px=pxL
 wgsmaxpxLf <- function(wL,
                        a=1.6, nZ=0.5, p=43200, l=1.8e-5, LAI=1, h=l*a*LAI/nZ*p, VPD=0.02,
-                       h2=l*LAI/nZ*p/1000, kxmax=5, c=2.64, d=3.54){
+                       h2=l*LAI/nZ*p/1000, kxmax=5){
   f1 <- function(w){
     ps <- psf(w)
     px <- pxL
@@ -97,7 +97,7 @@ Bfm <- function(w, gs, wL)Af(gs)-mfm(w, gs, wL)
 spf <- function(wL,
                 ca=400, Vcmax=50, cp=30, Km=703, Rd=1, LAI=1,
                 a=1.6, nZ=0.5, p=43200, l=1.8e-5, h=l*a*LAI/nZ*p, VPD=0.02,
-                h2=l*LAI/nZ*p/1000, kxmax=5, c=2.64, d=3.54, h3=10){
+                h2=l*LAI/nZ*p/1000, kxmax=5, h3=10){
   f1 <- function(w){
     dAdgsf <- function(gs)(1/2)*LAI*(ca+Km+((-ca^2)*gs-gs*Km^2-Km*Rd-2*cp*Vcmax-Km*Vcmax+ca*(-2*gs*Km-Rd+Vcmax))/sqrt((ca*gs-gs*Km+Rd-Vcmax)^2+4*gs*(ca*gs*Km+Km*Rd+cp*Vcmax)))
     f2 <- function(px)h3*c*exp(-(-px/d)^c)*(-px/d)^(c-1)/d*pkx*((exp((-(px/d))^c)*h*px*VPD)/(h2*kxmax*(exp((-(px/d))^c)*(-1+pkx)*(-1+PLCmax)*px+pkx*(px+c*ps*(-(px/d))^c-c*px*(-(px/d))^c))))
@@ -149,7 +149,7 @@ wLLf <- Vectorize(function(wL){
 # averB for invader
 averBif <- function(wLi, wLr,
                     a=1.6, nZ=0.5, p=43200, l=1.8e-5, LAI=1, h=l*a*LAI/nZ*p, VPD=0.02,
-                    pe=-1.58*10^-3, b=4.38, h2=l*LAI/nZ*p/1000, kxmax=5, c=2.64, d=3.54,
+                    pe=-1.58*10^-3, b=4.38, h2=l*LAI/nZ*p/1000, kxmax=5,
                     gamma=1/((MAP/365/k)/1000)*nZ){
   wLLr <- wLLf(wLr)
   wLLi <- wLLf(wLi)
@@ -176,7 +176,7 @@ averBif <- function(wLi, wLr,
 
 optwLif <- Vectorize(function(wLr){
   averBif1 <- Vectorize(function(wLi)averBif(wLi, wLr))
-  optwLi <- optimize(averBif1, c(0.16, 0.19), tol=.Machine$double.eps, maximum=T)
+  optwLi <- optimize(averBif1, c(0.1, 0.3), tol=.Machine$double.eps^0.25, maximum=T)
   res <- optwLi$maximum-wLr
   return(res)
 })

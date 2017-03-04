@@ -8,5 +8,5 @@ k <- 0.05
 MAP <- 1825
 pkx <- 0.5
 
-optwL <- uniroot(optwLif, c(0.177, 0.178), tol=.Machine$double.eps)
+optwL <- uniroot(optwLif, c(0.175, 0.177), tol=.Machine$double.eps)
 optwL
