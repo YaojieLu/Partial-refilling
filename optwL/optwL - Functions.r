@@ -5,6 +5,22 @@ psf <- function(w, pe=-1.58*10^-3, b=4.38)pe*w^(-b)
 # the original PLC(px)
 PLCf <- function(px)1-exp(-(-px/d)^c)
 
+# modified PLC
+PLCfm1 <- function(px, wL){
+  pxL <- psf(wL)
+  res <- PLCf(pxL)-(PLCf(pxL)-PLCf(px))*pkx
+  return(res)
+}
+
+# P50
+P50f <- function(wL){
+  pxL <- psf(wL)
+  f1 <- function(px)PLCf(pxL)-(PLCf(pxL)-PLCf(px))*pkx-0.5
+  f2 <- function(px)PLCf(pxL)-(PLCf(pxL)-PLCf(px))*pkx
+  res <- uniroot(f1, c(-10, 0), tol=.Machine$double.eps)
+  return(res$root)
+}
+
 # modified gsmax
 gsmaxfm <- function(w, wL,
                     a=1.6, nZ=0.5, p=43200, l=1.8e-5, LAI=1, h=l*a*LAI/nZ*p, VPD=0.02,
