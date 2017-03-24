@@ -8,18 +8,26 @@ PLCf <- function(px)1-exp(-(-px/d)^c)
 # modified PLC
 PLCfm1 <- function(px, wL){
   pxL <- psf(wL)
-  res <- PLCf(pxL)-(PLCf(pxL)-PLCf(px))*pkx
+  res <- ifelse(px>pxL, PLCf(pxL)-(PLCf(pxL)-PLCf(px))*pkx, PLCf(px))
+  #res <- PLCf(pxL)-(PLCf(pxL)-PLCf(px))*pkx
   return(res)
 }
 
 # P50
-P50f <- function(wL){
-  pxL <- psf(wL)
-  f1 <- function(px)PLCf(pxL)-(PLCf(pxL)-PLCf(px))*pkx-0.5
-  f2 <- function(px)PLCf(pxL)-(PLCf(pxL)-PLCf(px))*pkx
-  res <- uniroot(f1, c(-10, 0), tol=.Machine$double.eps)
-  return(res$root)
-}
+P50f <- Vectorize(function(d){
+  f1 <- function(px)exp(-(-px/d)^c)-0.5
+  res <- uniroot(f1, c(-10, 0), tol=.Machine$double.eps)$root
+  return(res)
+})
+#
+## P50
+#P50f1 <- function(wL){
+#  pxL <- psf(wL)
+#  f1 <- function(px)PLCf(pxL)-(PLCf(pxL)-PLCf(px))*pkx-0.5
+#  f2 <- function(px)PLCf(pxL)-(PLCf(pxL)-PLCf(px))*pkx
+#  res <- uniroot(f1, c(-20, 0), tol=.Machine$double.eps)
+#  return(res$root)
+#}
 
 # modified gsmax
 gsmaxfm <- function(w, wL,
@@ -192,7 +200,7 @@ averBif <- function(wLi, wLr,
 
 optwLif <- Vectorize(function(wLr){
   averBif1 <- Vectorize(function(wLi)averBif(wLi, wLr))
-  optwLi <- optimize(averBif1, c(0.1, 0.3), tol=.Machine$double.eps^0.25, maximum=T)
+  optwLi <- optimize(averBif1, c(0.22, 0.3), tol=.Machine$double.eps^0.25, maximum=T)
   res <- optwLi$maximum-wLr
   return(res)
 })
