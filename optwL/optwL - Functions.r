@@ -14,7 +14,6 @@ PLCfm1 <- function(px, wL){
 }
 
 # P50
-<<<<<<< HEAD
 P50f <- Vectorize(function(d){
   f1 <- function(px)exp(-(-px/d)^c)-0.5
   res <- uniroot(f1, c(-10, 0), tol=.Machine$double.eps)$root
@@ -29,15 +28,6 @@ P50f <- Vectorize(function(d){
 #  res <- uniroot(f1, c(-20, 0), tol=.Machine$double.eps)
 #  return(res$root)
 #}
-=======
-P50f <- function(wL){
-  pxL <- psf(wL)
-  f1 <- function(px)PLCf(pxL)-(PLCf(pxL)-PLCf(px))*pkx-0.5
-  f2 <- function(px)PLCf(pxL)-(PLCf(pxL)-PLCf(px))*pkx
-  res <- uniroot(f1, c(-20, 0), tol=.Machine$double.eps)
-  return(res$root)
-}
->>>>>>> 7e2554e904280d4c6cd91ccb9464eb293dac4203
 
 # modified gsmax
 gsmaxfm <- function(w, wL,
@@ -210,11 +200,7 @@ averBif <- function(wLi, wLr,
 
 optwLif <- Vectorize(function(wLr){
   averBif1 <- Vectorize(function(wLi)averBif(wLi, wLr))
-<<<<<<< HEAD
   optwLi <- optimize(averBif1, c(0.22, 0.3), tol=.Machine$double.eps^0.25, maximum=T)
-=======
-  optwLi <- optimize(averBif1, c(0.2, 0.33), tol=.Machine$double.eps^0.25, maximum=T)
->>>>>>> 7e2554e904280d4c6cd91ccb9464eb293dac4203
   res <- optwLi$maximum-wLr
   return(res)
 })
