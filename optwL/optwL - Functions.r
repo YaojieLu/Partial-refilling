@@ -17,7 +17,7 @@ P50f <- function(wL){
   pxL <- psf(wL)
   f1 <- function(px)PLCf(pxL)-(PLCf(pxL)-PLCf(px))*pkx-0.5
   f2 <- function(px)PLCf(pxL)-(PLCf(pxL)-PLCf(px))*pkx
-  res <- uniroot(f1, c(-10, 0), tol=.Machine$double.eps)
+  res <- uniroot(f1, c(-20, 0), tol=.Machine$double.eps)
   return(res$root)
 }
 
@@ -192,7 +192,7 @@ averBif <- function(wLi, wLr,
 
 optwLif <- Vectorize(function(wLr){
   averBif1 <- Vectorize(function(wLi)averBif(wLi, wLr))
-  optwLi <- optimize(averBif1, c(0.1, 0.3), tol=.Machine$double.eps^0.25, maximum=T)
+  optwLi <- optimize(averBif1, c(0.2, 0.33), tol=.Machine$double.eps^0.25, maximum=T)
   res <- optwLi$maximum-wLr
   return(res)
 })
