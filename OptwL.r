@@ -1,6 +1,6 @@
 
 options(digits=20)
-source("optwL/optwL - Functions.r")
+source("Functions.r")
 
 # Results
 ca <- 400
