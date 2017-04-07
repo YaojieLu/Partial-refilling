@@ -188,13 +188,13 @@ averBif <- function(wLi, wLr,
   gswLfi <- Vectorize(function(w)ifelse(w<wLLi, 0, ifelse(w>spi, gswLf1(w, wLi), gsmaxfmi(w))))
   
   Evf <- function(w)h*VPD*gswLfr(w)
-  Lf <- function(w)Evf(w)+w/20
+  Lf <- function(w)Evf(w)+w/1000
   rLf <- function(w)1/Lf(w)
-  integralrLf <- Vectorize(function(w)integrate(rLf, w, 1, rel.tol=.Machine$double.eps^0.4)$value)
+  integralrLf <- Vectorize(function(w)integrate(rLf, w, 1, rel.tol=.Machine$double.eps^0.3)$value)
   fnoc <- function(w)1/Lf(w)*exp(-gamma*w-k*integralrLf(w))
   
   f1 <- Vectorize(function(w)Bfm(w, gswLfi(w), wLi)*fnoc(w))
-  res <- integrate(f1, wLLi, 1, rel.tol=.Machine$double.eps^0.4)$value
+  res <- integrate(f1, wLLi, 1, rel.tol=.Machine$double.eps^0.3)$value
   message(wLr, " ", wLi, " ", res)
   return(res)
 }
@@ -210,7 +210,7 @@ averBf <- function(wL,
   gswLf <- Vectorize(function(w)ifelse(w<wLL, 0, ifelse(w>sp, gswLf1(w, wL), gsmaxfm(w, wL))))
 
   Evf <- function(w)h*VPD*gswLf(w)
-  Lf <- function(w)Evf(w)+w/20
+  Lf <- function(w)Evf(w)+w/1000
   rLf <- function(w)1/Lf(w)
   integralrLf <- Vectorize(function(w)integrate(rLf, w, 1, rel.tol=.Machine$double.eps^0.4)$value)
   fnoc <- function(w)1/Lf(w)*exp(-gamma*w-k*integralrLf(w))
@@ -218,17 +218,21 @@ averBf <- function(wL,
   res1 <- integrate(fnoc, 0, 1, rel.tol=.Machine$double.eps^0.4)#$value
   cPDF <- 1/res1$value
   
-  fB <- Vectorize(function(w)Bfm(w, gswLf(w), wL)*cPDF*fnoc(w))
-  resB <- integrate(fB, wLL, 1, rel.tol=.Machine$double.eps^0.4)#$value
+  fA <- Vectorize(function(w)Af(gswLf(w))*cPDF*fnoc(w))
+  resA <- integrate(fA, wLL, 1, rel.tol=.Machine$double.eps^0.4)#$value
   fE <- Vectorize(function(w)Evf(w)*cPDF*fnoc(w))
   resE <- integrate(fE, wLL, 1, rel.tol=.Machine$double.eps^0.4)#$value
-  res <- c(resB, resE)
+  res <- c(resA$value, resE$value*500*365)
   return(res)
 }
 
 optwLif <- Vectorize(function(wLr){
   averBif1 <- Vectorize(function(wLi)averBif(wLi, wLr))
+<<<<<<< HEAD
   optwLi <- optimize(averBif1, c(0.11, 0.15), tol=.Machine$double.eps^0.25, maximum=T)
+=======
+  optwLi <- optimize(averBif1, c(0.08, 0.3), tol=.Machine$double.eps^0.25, maximum=T)
+>>>>>>> ddf7255b95470f94ee41dcdd5305b1a5ea2e35d8
   res <- optwLi$maximum-wLr
   return(res)
 })
