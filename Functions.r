@@ -228,7 +228,7 @@ averBf <- function(wL,
 
 optwLif <- Vectorize(function(wLr){
   averBif1 <- Vectorize(function(wLi)averBif(wLi, wLr))
-  optwLi <- optimize(averBif1, c(0.22, 0.3), tol=.Machine$double.eps^0.25, maximum=T)
+  optwLi <- optimize(averBif1, c(0.11, 0.15), tol=.Machine$double.eps^0.25, maximum=T)
   res <- optwLi$maximum-wLr
   return(res)
 })
