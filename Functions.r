@@ -69,7 +69,9 @@ pxf <- function(w, gs, wL,
   pxL <- psf(wL)
   ps <- psf(w)
   pxmin <- pxminfm(w, wL)
+  message(w, " ", gs)
   res <- ifelse(pxmin<ps, uniroot(f1, c(pxmin, ps), tol=.Machine$double.eps)$root, ps)
+  message(w, " ", gs, " ", res)
   return(res)
 }
 
@@ -176,6 +178,7 @@ averBif <- function(wLi, wLr,
                     a=1.6, nZ=0.5, p=43200, l=1.8e-5, LAI=1, h=l*a*LAI/nZ*p, VPD=0.02,
                     pe=-1.58*10^-3, b=4.38, h2=l*LAI/nZ*p/1000, kxmax=5,
                     gamma=1/((MAP/365/k)/1000)*nZ){
+  browser()
   wLLr <- wLLf(wLr)
   wLLi <- wLLf(wLi)
   spr <- spf(wLr)
@@ -228,7 +231,7 @@ averBf <- function(wL,
 
 optwLif <- Vectorize(function(wLr){
   averBif1 <- Vectorize(function(wLi)averBif(wLi, wLr))
-  optwLi <- optimize(averBif1, c(0.1, 0.15), tol=.Machine$double.eps^0.25, maximum=T)
+  optwLi <- optimize(averBif1, c(0.11, 0.15), tol=.Machine$double.eps^0.25, maximum=T)
   res <- optwLi$maximum-wLr
   return(res)
 })
