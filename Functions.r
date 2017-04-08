@@ -37,23 +37,39 @@ gsmaxfm <- function(w, wL,
 }
 
 # modified pxmin
-pxminfm <- function(w, wL,
-                    LAI=1, nZ=0.5, p=43200, l=1.8e-5, VPD=0.02,
+pxminfm <- function(w, wL, a=1.6, nZ=0.5, p=43200, l=1.8e-5, LAI=1, h=l*a*LAI/nZ*p, VPD=0.02,
                     h2=l*LAI/nZ*p/1000, kxmax=5){
   # modified PLC
   PLCfm <- function(x)PLCf(pxL)-(PLCf(pxL)-PLCf(x))*pkx
   # modified xylem conductance function
   kxfm <- function(x)kxmax*(1-PLCfm(x))
   
-  f1 <- function(x)(ps-x)*h2*kxfm(x)
+  f1 <- function(x)(ps-x)*h2*kxfm(x)/(h*VPD)
   
   pxL <- psf(wL)
   ps <- psf(w)
-  wgsmaxpxL <- wgsmaxpxLf(wL)
-  res <- ifelse(pxL<ps, ifelse(w>wgsmaxpxL, optimize(f1, c(pxL, ps), tol=.Machine$double.eps, maximum=T)$maximum, pxL), ps)
+  res <- ifelse(pxL<ps, optimize(f1, c(pxL, ps), tol=.Machine$double.eps, maximum=T)$maximum, 0)
   return(res)
-  
 }
+
+## modified pxmin
+#pxminfm <- function(w, wL,
+#                    LAI=1, nZ=0.5, p=43200, l=1.8e-5, VPD=0.02,
+#                    h2=l*LAI/nZ*p/1000, kxmax=5){
+#  # modified PLC
+#  PLCfm <- function(x)PLCf(pxL)-(PLCf(pxL)-PLCf(x))*pkx
+#  # modified xylem conductance function
+#  kxfm <- function(x)kxmax*(1-PLCfm(x))
+#  
+#  f1 <- function(x)(ps-x)*h2*kxfm(x)
+#  
+#  pxL <- psf(wL)
+#  ps <- psf(w)
+#  wgsmaxpxL <- wgsmaxpxLf(wL)
+#  res <- ifelse(pxL<ps, ifelse(w>wgsmaxpxL, optimize(f1, c(pxL, ps), tol=.Machine$double.eps, maximum=T)$maximum, pxL), ps)
+#  return(res)
+#  
+#}
 
 # xylem water potential function
 pxf <- function(w, gs, wL,
@@ -69,9 +85,8 @@ pxf <- function(w, gs, wL,
   pxL <- psf(wL)
   ps <- psf(w)
   pxmin <- pxminfm(w, wL)
-  message(w, " ", gs)
+  message(w, " ", gs, " ", wL)
   res <- ifelse(pxmin<ps, uniroot(f1, c(pxmin, ps), tol=.Machine$double.eps)$root, ps)
-  message(w, " ", gs, " ", res)
   return(res)
 }
 
@@ -178,7 +193,6 @@ averBif <- function(wLi, wLr,
                     a=1.6, nZ=0.5, p=43200, l=1.8e-5, LAI=1, h=l*a*LAI/nZ*p, VPD=0.02,
                     pe=-1.58*10^-3, b=4.38, h2=l*LAI/nZ*p/1000, kxmax=5,
                     gamma=1/((MAP/365/k)/1000)*nZ){
-  browser()
   wLLr <- wLLf(wLr)
   wLLi <- wLLf(wLi)
   spr <- spf(wLr)
@@ -211,7 +225,7 @@ averBf <- function(wL,
   sp <- spf(wL)
   
   gswLf <- Vectorize(function(w)ifelse(w<wLL, 0, ifelse(w>sp, gswLf1(w, wL), gsmaxfm(w, wL))))
-
+  
   Evf <- function(w)h*VPD*gswLf(w)
   Lf <- function(w)Evf(w)+w/1000
   rLf <- function(w)1/Lf(w)
