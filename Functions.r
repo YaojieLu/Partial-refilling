@@ -190,11 +190,11 @@ averBif <- function(wLi, wLr,
   Evf <- function(w)h*VPD*gswLfr(w)
   Lf <- function(w)Evf(w)+w/1000
   rLf <- function(w)1/Lf(w)
-  integralrLf <- Vectorize(function(w)integrate(rLf, w, 1, rel.tol=.Machine$double.eps^0.3)$value)
+  integralrLf <- Vectorize(function(w)integrate(rLf, w, 1, rel.tol=.Machine$double.eps^0.25)$value)
   fnoc <- function(w)1/Lf(w)*exp(-gamma*w-k*integralrLf(w))
   
   f1 <- Vectorize(function(w)Bfm(w, gswLfi(w), wLi)*fnoc(w))
-  res <- integrate(f1, wLLi, 1, rel.tol=.Machine$double.eps^0.3)$value
+  res <- integrate(f1, wLLi, 1, rel.tol=.Machine$double.eps^0.25)$value
   message(wLr, " ", wLi, " ", res)
   return(res)
 }
@@ -228,7 +228,7 @@ averBf <- function(wL,
 
 optwLif <- Vectorize(function(wLr){
   averBif1 <- Vectorize(function(wLi)averBif(wLi, wLr))
-  optwLi <- optimize(averBif1, c(0.08, 0.3), tol=.Machine$double.eps^0.25, maximum=T)
+  optwLi <- optimize(averBif1, c(0.1, 0.15), tol=.Machine$double.eps^0.25, maximum=T)
   res <- optwLi$maximum-wLr
   return(res)
 })
