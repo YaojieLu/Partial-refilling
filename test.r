@@ -12,9 +12,11 @@ h3 <- 1
 pkx <- 0.5
 d <- 1
 
-wL <- 0.238815223807604
-x <- seq(0.238815223807604-0.1, 0.238815223807604+0.1, by=0.02)
+wL <- 0.24
+x <- seq(0.2, 0.3, by=0.01)
 y <- numeric()
 for(i in 1:length(x)){
   y[i] <- averBif(wLi=x[i], wLr=wL)
 }
+plot(x, y)
+abline(v=wL)
