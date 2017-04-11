@@ -133,7 +133,7 @@ averBif <- function(wLi, wLr,
   gswLfi <- Vectorize(function(w)ifelse(w<wLLi, 0, gswLf(w, wLi)))
   
   Evf <- function(w)h*VPD*gswLfr(w)
-  Lf <- function(w)Evf(w)+w/1000
+  Lf <- function(w)Evf(w)+w/100
   rLf <- function(w)1/Lf(w)
   integralrLf <- Vectorize(function(w)integrate(rLf, w, 1, rel.tol=.Machine$double.eps^0.25)$value)
   fnoc <- function(w)1/Lf(w)*exp(-gamma*w-k*integralrLf(w))
@@ -145,16 +145,16 @@ averBif <- function(wLi, wLr,
 }
 
 # averages in monoculture
-averBf <- function(wL,
+averf <- function(wL,
                    a=1.6, nZ=0.5, p=43200, l=1.8e-5, LAI=1, h=l*a*LAI/nZ*p, VPD=0.02,
                    pe=-1.58*10^-3, b=4.38, h2=l*LAI/nZ*p/1000, kxmax=5,
                    gamma=1/((MAP/365/k)/1000)*nZ){
   wLL <- wLLf(wL)
 
-  gswLf <- Vectorize(function(w)ifelse(w<wLL, 0, gswLf(w, wL)))
+  gswLf1 <- Vectorize(function(w)ifelse(w<wLL, 0, gswLf(w, wL)))
   
-  Evf <- function(w)h*VPD*gswLf(w)
-  Lf <- function(w)Evf(w)+w/1000
+  Evf <- function(w)h*VPD*gswLf1(w)
+  Lf <- function(w)Evf(w)+w/100
   rLf <- function(w)1/Lf(w)
   integralrLf <- Vectorize(function(w)integrate(rLf, w, 1, rel.tol=.Machine$double.eps^0.4)$value)
   fnoc <- function(w)1/Lf(w)*exp(-gamma*w-k*integralrLf(w))
@@ -162,7 +162,7 @@ averBf <- function(wL,
   res1 <- integrate(fnoc, 0, 1, rel.tol=.Machine$double.eps^0.4)#$value
   cPDF <- 1/res1$value
   
-  fA <- Vectorize(function(w)Af(gswLf(w))*cPDF*fnoc(w))
+  fA <- Vectorize(function(w)Af(gswLf1(w))*cPDF*fnoc(w))
   resA <- integrate(fA, wLL, 1, rel.tol=.Machine$double.eps^0.4)#$value
   fE <- Vectorize(function(w)Evf(w)*cPDF*fnoc(w))
   resE <- integrate(fE, wLL, 1, rel.tol=.Machine$double.eps^0.4)#$value
