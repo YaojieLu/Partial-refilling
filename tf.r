@@ -174,6 +174,6 @@ optwLif <- Vectorize(function(wLr){
   averBif1 <- Vectorize(function(wLi)averBif(wLi, wLr))
   optwLi <- optimize(averBif1, c(0.1, 0.3), tol=.Machine$double.eps^0.25, maximum=T)
   res <- optwLi$maximum-wLr
-  message(wLr, " ", wLi)
+  message(wLr, " ", optwLi$maximum)
   return(res)
 })
