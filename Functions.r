@@ -2,6 +2,9 @@
 # ps(w)
 psf <- function(w, pe=-1.58*10^-3, b=4.38)pe*w^(-b)
 
+# wf(ps)
+wf <- function(ps, pe=-1.58*10^-3, b=4.38)(ps/pe)^(-1/b)
+
 # the original PLC(px)
 PLCf <- function(px)1-exp(-(-px/d)^c)
 
@@ -15,7 +18,7 @@ PLCfm1 <- function(px, wL){
 # P50
 P50f <- Vectorize(function(d){
   f1 <- function(px)exp(-(-px/d)^c)-0.5
-  res <- uniroot(f1, c(-10, 0), tol=.Machine$double.eps)$root
+  res <- uniroot(f1, c(-20, 0), tol=.Machine$double.eps)$root
   return(res)
 })
 
@@ -37,7 +40,8 @@ gsmaxfm <- function(w, wL,
 }
 
 # modified pxmin
-pxminfm <- function(w, wL, a=1.6, nZ=0.5, p=43200, l=1.8e-5, LAI=1, h=l*a*LAI/nZ*p, VPD=0.02,
+pxminfm <- function(w, wL,
+                    a=1.6, nZ=0.5, p=43200, l=1.8e-5, LAI=1, h=l*a*LAI/nZ*p, VPD=0.02,
                     h2=l*LAI/nZ*p/1000, kxmax=5){
   # modified PLC
   PLCfm <- function(x)PLCf(pxL)-(PLCf(pxL)-PLCf(x))*pkx
@@ -48,28 +52,9 @@ pxminfm <- function(w, wL, a=1.6, nZ=0.5, p=43200, l=1.8e-5, LAI=1, h=l*a*LAI/nZ
   
   pxL <- psf(wL)
   ps <- psf(w)
-  res <- ifelse(pxL<ps, optimize(f1, c(pxL, ps), tol=.Machine$double.eps, maximum=T)$maximum, 0)
+  res <- ifelse(pxL<ps, optimize(f1, c(pxL, ps), tol=.Machine$double.eps, maximum=T)$maximum, ps)
   return(res)
 }
-
-## modified pxmin
-#pxminfm <- function(w, wL,
-#                    LAI=1, nZ=0.5, p=43200, l=1.8e-5, VPD=0.02,
-#                    h2=l*LAI/nZ*p/1000, kxmax=5){
-#  # modified PLC
-#  PLCfm <- function(x)PLCf(pxL)-(PLCf(pxL)-PLCf(x))*pkx
-#  # modified xylem conductance function
-#  kxfm <- function(x)kxmax*(1-PLCfm(x))
-#  
-#  f1 <- function(x)(ps-x)*h2*kxfm(x)
-#  
-#  pxL <- psf(wL)
-#  ps <- psf(w)
-#  wgsmaxpxL <- wgsmaxpxLf(wL)
-#  res <- ifelse(pxL<ps, ifelse(w>wgsmaxpxL, optimize(f1, c(pxL, ps), tol=.Machine$double.eps, maximum=T)$maximum, pxL), ps)
-#  return(res)
-#  
-#}
 
 # xylem water potential function
 pxf <- function(w, gs, wL,
@@ -85,25 +70,7 @@ pxf <- function(w, gs, wL,
   pxL <- psf(wL)
   ps <- psf(w)
   pxmin <- pxminfm(w, wL)
-  message(w, " ", gs, " ", wL)
   res <- ifelse(pxmin<ps, uniroot(f1, c(pxmin, ps), tol=.Machine$double.eps)$root, ps)
-  return(res)
-}
-
-# where gs reaches its max at px=pxL
-wgsmaxpxLf <- function(wL,
-                       a=1.6, nZ=0.5, p=43200, l=1.8e-5, LAI=1, h=l*a*LAI/nZ*p, VPD=0.02,
-                       h2=l*LAI/nZ*p/1000, kxmax=5){
-  f1 <- function(w){
-    ps <- psf(w)
-    px <- pxL
-    res <- -((h2*kxmax*(exp((-(px/d))^c)*(-1+pkx)*(-1+PLCmax)*px+pkx*(px+c*ps*(-(px/d))^c-c*px*(-(px/d))^c)))/(exp((-(px/d))^c)*px))
-  }
-  
-  pxL <- psf(wL)
-  PLCmax <- PLCf(pxL)
-  x <- try(uniroot(f1, c(wL, 1), tol=.Machine$double.eps)$root, silent=TRUE)
-  res <- ifelse(is.numeric(x), x, 1)
   return(res)
 }
 
@@ -124,51 +91,32 @@ mfm <- function(w, gs, wL){
 # modified B(w, gs)
 Bfm <- function(w, gs, wL)Af(gs)-mfm(w, gs, wL)
 
-# switch point
-spf <- function(wL,
-                ca=400, Vcmax=50, cp=30, Km=703, Rd=1, LAI=1,
-                a=1.6, nZ=0.5, p=43200, l=1.8e-5, h=l*a*LAI/nZ*p, VPD=0.02,
-                h2=l*LAI/nZ*p/1000, kxmax=5){
-  f1 <- function(w){
-    dAdgsf <- function(gs)(1/2)*LAI*(ca+Km+((-ca^2)*gs-gs*Km^2-Km*Rd-2*cp*Vcmax-Km*Vcmax+ca*(-2*gs*Km-Rd+Vcmax))/sqrt((ca*gs-gs*Km+Rd-Vcmax)^2+4*gs*(ca*gs*Km+Km*Rd+cp*Vcmax)))
-    f2 <- function(px)h3*c*exp(-(-px/d)^c)*(-px/d)^(c-1)/d*pkx*((exp((-(px/d))^c)*h*px*VPD)/(h2*kxmax*(exp((-(px/d))^c)*(-1+pkx)*(-1+PLCmax)*px+pkx*(px+c*ps*(-(px/d))^c-c*px*(-(px/d))^c))))
-    
-    ps <- psf(w)
-    gsmax <- gsmaxfm(w, wL)
-    pxmin <- pxminfm(w, wL)
-    res <- dAdgsf(gsmax)-f2(pxmin)
-    return(res)
-  }
-  
-  pxL <- psf(wL)
-  PLCmax <- PLCf(pxL)
-  wgsmaxpxL <- wgsmaxpxLf(wL)
-  x <- try(uniroot(f1, c(wL, wgsmaxpxL*(1-1e-10)), tol=.Machine$double.eps)$root, silent=TRUE)
-  res <- ifelse(wgsmaxpxL>wL, ifelse(is.numeric(x), x, ifelse(f1(wL)>f1(wgsmaxpxL), 1, wL)), wL)
-  return(res)
-}
-
-# family ESS 1
-gswLf1 <- function(w, wL){
+# family ESS
+gswLf <- Vectorize(function(w, wL){
   Bfm1 <- function(gs)Bfm(w, gs, wL)
   gsmaxfm1 <- function(w)gsmaxfm(w, wL)
   
   res <- ifelse(0<gsmaxfm1(w), optimize(Bfm1, c(0, gsmaxfm1(w)), tol=.Machine$double.eps, maximum=T)$maximum, 0)
   return(res)
+})
+
+# family ESS gs(ps)
+gswLpsf <- function(ps, wL){
+  w <- wf(ps)
+  res <- gswLf(w, wL)
+  return(res)
 }
 
-# family ESS
-gswLf <- function(w, wL){
-  Bfm1 <- function(gs)Bfm(w, gs, wL)
-  gsmaxfm1 <- function(w)gsmaxfm(w, wL)
-  
-  sp <- spf(wL)
-  res <- ifelse(w>sp, ifelse(0<gsmaxfm1(w), optimize(Bfm1, c(0, gsmaxfm1(w)), tol=.Machine$double.eps, maximum=T)$maximum, 0), gsmaxfm1(w))
+# family ESS PLC(ps)
+ESSPLCpsf <- function(ps, wL){
+  w <- wf(ps)
+  px <- pxf(w, gswLf(w, wL), wL)
+  res <- PLCf(px)
   return(res)
 }
 
 # family ESS A(w)
-AwLf <- function(w, wL)Af(gswLf1(w, wL))
+AwLf <- function(w, wL)Af(gswLf(w, wL))
 
 # family ESS B(w)
 BwLf <- function(w, wL)Bfm(w, gswLf(w, wL), wL)
@@ -177,7 +125,7 @@ BwLf <- function(w, wL)Bfm(w, gswLf(w, wL), wL)
 ESSg1psf <- Vectorize(function(ps, wL, VPD=0.02, a=1.6){
   f1 <- function(w)psf(w)-ps
   w <- uniroot(f1, c(0.001, 1), tol=.Machine$double.eps)$root
-  res <- sqrt(VPD*100)*(ca*gswLf1(w, wL)/(a*AwLf(w, wL))-1)
+  res <- sqrt(VPD*100)*(ca*gswLf(w, wL)/(a*AwLf(w, wL))-1)
   return(res)
 })
 
@@ -195,39 +143,36 @@ averBif <- function(wLi, wLr,
                     gamma=1/((MAP/365/k)/1000)*nZ){
   wLLr <- wLLf(wLr)
   wLLi <- wLLf(wLi)
-  spr <- spf(wLr)
-  spi <- spf(wLi)
   
   gsmaxfmr <- function(w)gsmaxfm(w, wLr)
   gsmaxfmi <- function(w)gsmaxfm(w, wLi)
   
-  gswLfr <- Vectorize(function(w)ifelse(w<wLLr, 0, ifelse(w>spr, gswLf1(w, wLr), gsmaxfmr(w))))
-  gswLfi <- Vectorize(function(w)ifelse(w<wLLi, 0, ifelse(w>spi, gswLf1(w, wLi), gsmaxfmi(w))))
+  gswLfr <- Vectorize(function(w)ifelse(w<wLLr, 0, gswLf(w, wLr)))
+  gswLfi <- Vectorize(function(w)ifelse(w<wLLi, 0, gswLf(w, wLi)))
   
   Evf <- function(w)h*VPD*gswLfr(w)
-  Lf <- function(w)Evf(w)+w/1000
+  Lf <- function(w)Evf(w)+w/100
   rLf <- function(w)1/Lf(w)
   integralrLf <- Vectorize(function(w)integrate(rLf, w, 1, rel.tol=.Machine$double.eps^0.25)$value)
   fnoc <- function(w)1/Lf(w)*exp(-gamma*w-k*integralrLf(w))
   
   f1 <- Vectorize(function(w)Bfm(w, gswLfi(w), wLi)*fnoc(w))
   res <- integrate(f1, wLLi, 1, rel.tol=.Machine$double.eps^0.25)$value
-  message(wLr, " ", wLi, " ", res)
+  #message(wLr, " ", wLi, " ", res)
   return(res)
 }
 
 # averages in monoculture
-averBf <- function(wL,
-                   a=1.6, nZ=0.5, p=43200, l=1.8e-5, LAI=1, h=l*a*LAI/nZ*p, VPD=0.02,
-                   pe=-1.58*10^-3, b=4.38, h2=l*LAI/nZ*p/1000, kxmax=5,
-                   gamma=1/((MAP/365/k)/1000)*nZ){
+averf <- function(wL,
+                  a=1.6, nZ=0.5, p=43200, l=1.8e-5, LAI=1, h=l*a*LAI/nZ*p, VPD=0.02,
+                  pe=-1.58*10^-3, b=4.38, h2=l*LAI/nZ*p/1000, kxmax=5,
+                  gamma=1/((MAP/365/k)/1000)*nZ){
   wLL <- wLLf(wL)
-  sp <- spf(wL)
   
-  gswLf <- Vectorize(function(w)ifelse(w<wLL, 0, ifelse(w>sp, gswLf1(w, wL), gsmaxfm(w, wL))))
+  gswLf1 <- Vectorize(function(w)ifelse(w<wLL, 0, gswLf(w, wL)))
   
-  Evf <- function(w)h*VPD*gswLf(w)
-  Lf <- function(w)Evf(w)+w/1000
+  Evf <- function(w)h*VPD*gswLf1(w)
+  Lf <- function(w)Evf(w)+w/100
   rLf <- function(w)1/Lf(w)
   integralrLf <- Vectorize(function(w)integrate(rLf, w, 1, rel.tol=.Machine$double.eps^0.4)$value)
   fnoc <- function(w)1/Lf(w)*exp(-gamma*w-k*integralrLf(w))
@@ -235,7 +180,7 @@ averBf <- function(wL,
   res1 <- integrate(fnoc, 0, 1, rel.tol=.Machine$double.eps^0.4)#$value
   cPDF <- 1/res1$value
   
-  fA <- Vectorize(function(w)Af(gswLf(w))*cPDF*fnoc(w))
+  fA <- Vectorize(function(w)Af(gswLf1(w))*cPDF*fnoc(w))
   resA <- integrate(fA, wLL, 1, rel.tol=.Machine$double.eps^0.4)#$value
   fE <- Vectorize(function(w)Evf(w)*cPDF*fnoc(w))
   resE <- integrate(fE, wLL, 1, rel.tol=.Machine$double.eps^0.4)#$value
@@ -245,7 +190,8 @@ averBf <- function(wL,
 
 optwLif <- Vectorize(function(wLr){
   averBif1 <- Vectorize(function(wLi)averBif(wLi, wLr))
-  optwLi <- optimize(averBif1, c(0.11, 0.15), tol=.Machine$double.eps^0.25, maximum=T)
+  optwLi <- optimize(averBif1, c(0.1, 0.3), tol=.Machine$double.eps^0.25, maximum=T)
   res <- optwLi$maximum-wLr
+  message(wLr, " ", optwLi$maximum)
   return(res)
 })
