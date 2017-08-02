@@ -23,11 +23,13 @@ for(i in 1:length(wLSA)){
   wL <- wLSA[i]
   wLL <- wLLf(wL)
   f1 <- Vectorize(function(w)gswLf(w, wL))
+  f2 <- Vectorize(function(w, gs)Bfm(w, gs, wL))
   x <- seq(wLL, 1, by=(1-wLL)/100)
   y <- f1(x)
-  datat <- data.frame(x, y)
+  z <- f2(x, y)
+  datat <- data.frame(x, y, z)
   res2 <- rbind(res2, datat)
 }
 res <- cbind(res1, res2)
-colnames(res) <- c("h3", "pkx", "w", "gs")
+colnames(res) <- c("h3", "pkx", "w", "gs", "B")
 write.csv(res, "Data/gs(w).csv", row.names = FALSE)
