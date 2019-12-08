@@ -24,7 +24,7 @@ P50f <- Vectorize(function(d){
 
 # modified gsmax
 gsmaxfm <- function(w, wL,
-                    a=1.6, nZ=0.5, p=43200, l=1.8e-5, LAI=1, h=l*a*LAI/nZ*p, VPD=0.02,
+                    a=1.6, nZ=0.5, p=43200, l=1.8e-5, LAI=3, h=l*a*LAI/nZ*p, VPD=0.02,
                     h2=l*LAI/nZ*p/1000, kxmax=5){
   # modified PLC
   PLCfm <- function(x)PLCf(pxL)-(PLCf(pxL)-PLCf(x))*pkx
@@ -41,7 +41,7 @@ gsmaxfm <- function(w, wL,
 
 # modified pxmin
 pxminfm <- function(w, wL,
-                    a=1.6, nZ=0.5, p=43200, l=1.8e-5, LAI=1, h=l*a*LAI/nZ*p, VPD=0.02,
+                    a=1.6, nZ=0.5, p=43200, l=1.8e-5, LAI=3, h=l*a*LAI/nZ*p, VPD=0.02,
                     h2=l*LAI/nZ*p/1000, kxmax=5){
   # modified PLC
   PLCfm <- function(x)PLCf(pxL)-(PLCf(pxL)-PLCf(x))*pkx
@@ -58,7 +58,7 @@ pxminfm <- function(w, wL,
 
 # xylem water potential function
 pxf <- function(w, gs, wL,
-                a=1.6, LAI=1, nZ=0.5, p=43200, l=1.8e-5, h=l*a*LAI/nZ*p, VPD=0.02,
+                a=1.6, LAI=3, nZ=0.5, p=43200, l=1.8e-5, h=l*a*LAI/nZ*p, VPD=0.02,
                 h2=l*LAI/nZ*p/1000, kxmax=5){
   # modified PLC
   PLCfm <- function(x)PLCf(pxL)-(PLCf(pxL)-PLCf(x))*pkx
@@ -75,7 +75,7 @@ pxf <- function(w, gs, wL,
 }
 
 # Af(gs)
-Af <- function(gs, ca=400, Vcmax=50, cp=30, Km=703, Rd=1, LAI=1)LAI*1/2*(Vcmax+(Km+ca)*gs-Rd-((Vcmax)^2+2*Vcmax*(Km-ca+2*cp)*gs+((ca+Km)*gs+Rd)^2-2*Rd*Vcmax)^(1/2))
+Af <- function(gs, ca=400, Vcmax=50, cp=30, Km=703, Rd=1, LAI=3)LAI*1/2*(Vcmax+(Km+ca)*gs-Rd-((Vcmax)^2+2*Vcmax*(Km-ca+2*cp)*gs+((ca+Km)*gs+Rd)^2-2*Rd*Vcmax)^(1/2))
 
 # modified mf(w, gs)
 mfm <- function(w, gs, wL){
@@ -138,7 +138,7 @@ wLLf <- Vectorize(function(wL){
 
 # averB for invader
 averBif <- function(wLi, wLr,
-                    a=1.6, nZ=0.5, p=43200, l=1.8e-5, LAI=1, h=l*a*LAI/nZ*p, VPD=0.02,
+                    a=1.6, nZ=0.5, p=43200, l=1.8e-5, LAI=3, h=l*a*LAI/nZ*p, VPD=0.02,
                     pe=-1.58*10^-3, b=4.38, h2=l*LAI/nZ*p/1000, kxmax=5,
                     gamma=1/((MAP/365/k)/1000)*nZ){
   wLLr <- wLLf(wLr)
@@ -164,7 +164,7 @@ averBif <- function(wLi, wLr,
 
 # averages in monoculture
 averf <- function(wL,
-                  a=1.6, nZ=0.5, p=43200, l=1.8e-5, LAI=1, h=l*a*LAI/nZ*p, VPD=0.02,
+                  a=1.6, nZ=0.5, p=43200, l=1.8e-5, LAI=3, h=l*a*LAI/nZ*p, VPD=0.02,
                   pe=-1.58*10^-3, b=4.38, h2=l*LAI/nZ*p/1000, kxmax=5,
                   gamma=1/((MAP/365/k)/1000)*nZ){
   wLL <- wLLf(wL)
